@@ -1,4 +1,5 @@
 var sqlite3 = require('sqlite3').verbose()
+
 const DBSOURCE = "db.sqlite"
 
 let db = new sqlite3.Database(DBSOURCE, (err) => {
@@ -8,25 +9,24 @@ let db = new sqlite3.Database(DBSOURCE, (err) => {
       throw err
     }else{
         console.log('Connected to the SQLite database.')
-        db.run(`CREATE TABLE if not exists apples (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name text, 
-            email text UNIQUE, 
-            password text, 
-            CONSTRAINT email_unique UNIQUE (email)
+        db.run(`CREATE TABLE RecommendedSkinTypes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                product_id INT,
+                skin_type VARCHAR(255),
+                FOREIGN KEY (product_id) REFERENCES Products(id) ON DELETE CASCADE
             )`,
         (err) => {
             if (err) {
                 // Table already created
             }else{
                 // Table just created, creating some rows
-                var insert = 'INSERT INTO apples (name, email, password) VALUES (?,?,?)'
-                db.run(insert, ["admin","admin@example.com",("admin123456")])
-                db.run(insert, ["user","user@example.com",("user123456")])
+                var insert = 'INSERT INTO RecommendedSkinTypes (product_id, skin_type) VALUES (?,?)'
+
             }
         });  
     }
 });
 
 
-module.exports = db
+
+

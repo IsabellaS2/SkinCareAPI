@@ -21,8 +21,12 @@ SELECT
     p.product_name,
     p.product_type,
     p.brand,
-    COALESCE(GROUP_CONCAT(DISTINCT rst.skin_type), '') AS recommended_skin_types,
-    COALESCE(GROUP_CONCAT(DISTINCT i.ingredient), '') AS ingredient_list
+    p.url,
+    p.price,
+    -- Format recommended skin types as JSON array
+    json_group_array(DISTINCT rst.skin_type) AS recommended_skin_types,
+    -- Format ingredient list as JSON array
+    json_group_array(DISTINCT i.ingredient) AS ingredient_list
 FROM 
     Products p
 LEFT JOIN 
@@ -33,6 +37,7 @@ GROUP BY
     p.id;
 `;
 
+
 app.get("/products", (req, res) => {
   var sql = SQLCommandGetAll;  
   var params = [];
@@ -42,9 +47,17 @@ app.get("/products", (req, res) => {
       res.status(400).json({"error": err.message});
       return;
     }
+
+    // Parse JSON strings into arrays
+    rows = rows.map(row => {
+      row.recommended_skin_types = JSON.parse(row.recommended_skin_types);
+      row.ingredient_list = JSON.parse(row.ingredient_list);
+      return row;
+    });
+
     res.json({
       "message": "success",
-      "data": rows 
+      "products": rows
     });
   });
 });

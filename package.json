@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node app.js",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --verbose --runInBand --forceExit --detectOpenHandles"
+
   },
   "author": "Isabella Sulisufi <i.sulisufi@gmail.com>",
   "license": "ISC",
@@ -15,5 +16,9 @@
     "jsonwebtoken": "9.0.2",
     "md5": "2.3.0",
     "sqlite3": "5.1.7"
+  },
+  "devDependencies": {
+    "jest": "29.7.0",
+    "supertest": "7.0.0"
   }
 }

@@ -10,8 +10,6 @@ describe("GET /status", () => {
   });
 });
 
-
-
 describe("GET /products", () => {
   it("should get all products", async () => {
     const response = await request(app).get("/products");

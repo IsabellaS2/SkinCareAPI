@@ -9,7 +9,7 @@ import process from "process";
 
 const app = express();
 app.use(express.json());
-const PORT = process?.env?.PORT || 4000;
+const PORT = process?.env?.PORT || 5000;
 
 app.get("/status", (req, res) => {
   res.json({ status: "Running" });

@@ -15,28 +15,27 @@ app.get("/status", (req, res) => {
   res.json({ status: "Running" });
 });
 
-const sql_get_all_products = `
-SELECT 
-    p.id AS product_id,
-    p.product_name,
-    p.product_type,
-    p.brand,
-    p.url,
-    p.price,
-    json_group_array(DISTINCT rst.skin_type) AS recommended_skin_types,
-    json_group_array(DISTINCT i.ingredient) AS ingredient_list
-FROM 
-    Products p
-LEFT JOIN 
-    RecommendedSkinTypes rst ON p.id = rst.product_id
-LEFT JOIN 
-    Ingredients i ON p.id = i.product_id
-GROUP BY 
-    p.id;
-`;
-
+// Get all products
 app.get("/products", (req, res) => {
-  var sql = sql_get_all_products;
+  var sql = `
+  SELECT 
+      p.id AS product_id,
+      p.product_name,
+      p.product_type,
+      p.brand,
+      p.url,
+      p.price,
+      json_group_array(DISTINCT rst.skin_type) AS recommended_skin_types,
+      json_group_array(DISTINCT i.ingredient) AS ingredient_list
+  FROM 
+      Products p
+  LEFT JOIN 
+      RecommendedSkinTypes rst ON p.id = rst.product_id
+  LEFT JOIN 
+      Ingredients i ON p.id = i.product_id
+  GROUP BY 
+      p.id;
+  `;
   var params = [];
 
   db.all(sql, params, (err, rows) => {
@@ -52,12 +51,14 @@ app.get("/products", (req, res) => {
     });
 
     res.json({
+      product_length: rows.length,
       message: "success",
       products: rows,
     });
   });
 });
 
+// Get products by their product type e.g. Cleansing Oil
 app.get("/products/by-type", (req, res) => {
   let productType = req.query.product_type;
 
@@ -109,13 +110,239 @@ app.get("/products/by-type", (req, res) => {
 
     res.json({
       message: "success",
+      product_length: rows.length,
       products: rows,
     });
   });
 });
 
+// Get products by their brand e.g. The Ordinary
+app.get("/products/brand/:brand", (req, res) => {
+  let brand = req.params.brand;
+
+  if (!brand) {
+    return res.status(500).json({ error: "Brand parameter is required" });
+  }
+
+  let checkBrandSQL = `
+    SELECT 1 FROM Products p WHERE LOWER(p.brand) = LOWER(?) LIMIT 1;
+  `;
+
+  db.get(checkBrandSQL, [brand], (err, row) => {
+    if (err) {
+      console.error("Error checking brand:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (!row) {
+      return res
+        .status(404)
+        .json({ error: `Brand ${brand} does not exist in our database.` });
+    }
+
+    let sql = `
+      SELECT 
+        p.id AS product_id,
+        p.product_name,
+        p.product_type,
+        p.brand,
+        p.url,
+        p.price,
+        json_group_array(DISTINCT rst.skin_type) AS recommended_skin_types,
+        json_group_array(DISTINCT i.ingredient) AS ingredient_list
+      FROM 
+        Products p
+      LEFT JOIN 
+        RecommendedSkinTypes rst ON p.id = rst.product_id
+      LEFT JOIN 
+        Ingredients i ON p.id = i.product_id
+      WHERE LOWER(p.brand) = LOWER(?) 
+      GROUP BY p.id;
+    `;
+
+    db.all(sql, [brand], (err, rows) => {
+      if (err) {
+        console.error("Error fetching products:", err.message);
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (rows.length === 0) {
+        return res
+          .status(404)
+          .json({ error: `No products found for brand "${brand}".` });
+      }
+
+      rows = rows.map((row) => ({
+        ...row,
+        recommended_skin_types: row.recommended_skin_types
+          ? JSON.parse(row.recommended_skin_types)
+          : [],
+        ingredient_list: row.ingredient_list
+          ? JSON.parse(row.ingredient_list)
+          : [],
+      }));
+
+      res.json({
+        product_length: rows.length,
+        message: "success",
+        products: rows,
+      });
+    });
+  });
+});
+
+// Get products by their recommended skin type e.g. Dry, Oily
+app.get("/products/by-skin-type", (req, res) => {
+  let skinTypes = req.query.recommended_skin_type;
+
+  if (!skinTypes) {
+    return res
+      .status(400)
+      .json({ error: "Missing recommended_skin_type query parameter" });
+  }
+
+  // Split the comma-separated list of skin types
+  let skinTypeArray = skinTypes
+    .split(",")
+    .map((type) => type.trim().toLowerCase());
+
+  let sql = `
+    SELECT 
+      p.id AS product_id,
+      p.product_name,
+      p.product_type,
+      p.brand,
+      p.url,
+      p.price,
+      json_group_array(DISTINCT rst.skin_type) AS recommended_skin_types,
+      json_group_array(DISTINCT i.ingredient) AS ingredient_list
+    FROM 
+      Products p
+    LEFT JOIN 
+      RecommendedSkinTypes rst ON p.id = rst.product_id
+    LEFT JOIN 
+      Ingredients i ON p.id = i.product_id
+    GROUP BY p.id;
+  `;
+
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error("Error:", err.message);
+      return res.status(400).json({ error: err.message });
+    }
+
+    if (rows.length === 0) {
+      console.log("No products found.");
+    }
+
+    rows = rows.filter((row) => {
+      let recommendedTypes = row.recommended_skin_types
+        ? JSON.parse(row.recommended_skin_types)
+        : [];
+
+      return recommendedTypes.some(
+        (type) => type && skinTypeArray.includes(type.toLowerCase())
+      );
+    });
+
+    rows = rows.map((row) => ({
+      ...row,
+      recommended_skin_types: row.recommended_skin_types
+        ? JSON.parse(row.recommended_skin_types)
+        : [],
+      ingredient_list: row.ingredient_list
+        ? JSON.parse(row.ingredient_list)
+        : [],
+    }));
+
+    res.json({
+      message: "success",
+      product_length: rows.length,
+      products: rows,
+    });
+  });
+});
+
+// Get products by their ingredients e.g. Hyaluronic Acid, Salicylic Acid
+app.get("/products/ingredient/:ingredients", (req, res) => {
+  let ingredients = req.params.ingredients;
+
+  if (!ingredients) {
+    return res
+      .status(400)
+      .json({ error: "Missing ingredient query parameter" });
+  }
+
+  // Split the comma-separated list of ingredients
+  let ingredientArray = ingredients
+    .split(",")
+    .map((ingredient) => ingredient.trim().toLowerCase());
+
+  let sql = `
+    SELECT 
+      p.id AS product_id,
+      p.product_name,
+      p.product_type,
+      p.brand,
+      p.url,
+      p.price,
+      json_group_array(DISTINCT i.ingredient) AS ingredient_list
+    FROM 
+      Products p
+    LEFT JOIN 
+      Ingredients i ON p.id = i.product_id
+    GROUP BY p.id;
+  `;
+
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error("Error:", err.message);
+      return res.status(400).json({ error: err.message });
+    }
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "No products found with the given ingredients." });
+    }
+
+    rows = rows.filter((row) => {
+      // Ensure ingredient_list is not null or undefined
+      let ingredientsList = row.ingredient_list ? JSON.parse(row.ingredient_list) : [];
+
+      // Check that ingredientsList is an array and proceed
+      return Array.isArray(ingredientsList) && ingredientArray.every(
+        (ingredient) => ingredientsList.some((item) => item && item.toLowerCase() === ingredient)
+      );
+    });
+
+    // If no products match, return an error
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "No products found with the specified ingredients." });
+    }
+
+    rows = rows.map((row) => ({
+      ...row,
+      ingredient_list: row.ingredient_list ? JSON.parse(row.ingredient_list) : [],
+    }));
+
+    res.json({
+      message: "success",
+      product_length: rows.length,
+      products: rows,
+    });
+  });
+});
+
+
+
+
+// Get a product by its ID
 app.get("/products/:id", (req, res) => {
   const product_id = req.params.id;
+
+  // Check if the product_id is a valid number
+  if (isNaN(product_id) || product_id <= 0) {
+    return res.status(400).json({ error: "Invalid product ID" });
+  }
 
   var get_product_by_id = `
     SELECT 
@@ -143,13 +370,14 @@ app.get("/products/:id", (req, res) => {
 
   db.all(get_product_by_id, params, (err, rows) => {
     if (err) {
-      res.status(400).json({ error: err.message });
-      return;
+      console.error("Error fetching product by ID:", err.message);
+      return res.status(400).json({ error: err.message });
     }
 
     if (rows.length === 0) {
-      res.status(404).json({ error: "Product not found" });
-      return;
+      return res
+        .status(404)
+        .json({ error: `Product with ID ${product_id} not found` });
     }
 
     rows = rows.map((row) => {
@@ -161,7 +389,9 @@ app.get("/products/:id", (req, res) => {
         : [];
       return row;
     });
+
     res.json({
+      product_length: rows.length,
       products: rows,
     });
   });

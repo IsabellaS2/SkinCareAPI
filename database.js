@@ -1,4 +1,4 @@
-var sqlite3 = require('sqlite3').verbose()
+import sqlite3 from "sqlite3";
 
 const DBSOURCE = "db.sqlite"
 
@@ -20,8 +20,7 @@ let db = new sqlite3.Database(DBSOURCE, (err) => {
                 // Table already created
             }else{
                 // Table just created, creating some rows
-                var insert = 'INSERT INTO RecommendedSkinTypes (product_id, skin_type) VALUES (?,?)'
-
+                // var insert = 'INSERT INTO RecommendedSkinTypes (product_id, skin_type) VALUES (?,?)'
             }
         });  
     }

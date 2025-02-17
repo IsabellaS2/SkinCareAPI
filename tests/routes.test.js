@@ -1,6 +1,5 @@
 import request from "supertest";
 import app from "../app";
-import jest from "jest";
 
 describe("GET /status", () => {
   it('should return status "Running"', async () => {

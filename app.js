@@ -1,18 +1,18 @@
-const express = require('express');
-const app = express ();
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./db.sqlite');
+import express from "express";
+import sqlite3 from "sqlite3";
+const db = new sqlite3.Database("./db.sqlite");
 
+import dotenv from "dotenv";
+dotenv.config();
+
+import process from "process";
+
+const app = express();
 app.use(express.json());
-const PORT = process.env.PORT || 4000;
+const PORT = process?.env?.PORT || 4000;
 
-app.listen(PORT, () => {
-   console.log("Server Listening on PORT:", PORT);
- });
-
-
- app.get('/status', (req, res) => {
-  res.json({ status: 'Running' });
+app.get("/status", (req, res) => {
+  res.json({ status: "Running" });
 });
 
 const sql_get_all_products = `
@@ -35,26 +35,25 @@ GROUP BY
     p.id;
 `;
 
-//get all products
 app.get("/products", (req, res) => {
-  var sql = sql_get_all_products;  
+  var sql = sql_get_all_products;
   var params = [];
 
   db.all(sql, params, (err, rows) => {
     if (err) {
-      res.status(400).json({"error": err.message});
+      res.status(400).json({ error: err.message });
       return;
     }
 
-    rows = rows.map(row => {
+    rows = rows.map((row) => {
       row.recommended_skin_types = JSON.parse(row.recommended_skin_types);
       row.ingredient_list = JSON.parse(row.ingredient_list);
       return row;
     });
 
     res.json({
-      "message": "success",
-      "products": rows
+      message: "success",
+      products: rows,
     });
   });
 });
@@ -63,7 +62,9 @@ app.get("/products/by-type", (req, res) => {
   let productType = req.query.product_type;
 
   if (!productType) {
-    return res.status(400).json({ "error": "Missing product_type query parameter" });
+    return res
+      .status(400)
+      .json({ error: "Missing product_type query parameter" });
   }
 
   let sql = `
@@ -89,29 +90,33 @@ app.get("/products/by-type", (req, res) => {
   db.all(sql, [productType], (err, rows) => {
     if (err) {
       console.error("Error:", err.message);
-      return res.status(400).json({ "error": err.message });
+      return res.status(400).json({ error: err.message });
     }
 
     if (rows.length === 0) {
       console.log("No products found for type:", productType);
     }
 
-    rows = rows.map(row => ({
+    rows = rows.map((row) => ({
       ...row,
-      recommended_skin_types: row.recommended_skin_types ? JSON.parse(row.recommended_skin_types) : [],
-      ingredient_list: row.ingredient_list ? JSON.parse(row.ingredient_list) : []
+      recommended_skin_types: row.recommended_skin_types
+        ? JSON.parse(row.recommended_skin_types)
+        : [],
+      ingredient_list: row.ingredient_list
+        ? JSON.parse(row.ingredient_list)
+        : [],
     }));
 
     res.json({
-      "message": "success",
-      "products": rows
+      message: "success",
+      products: rows,
     });
   });
 });
 
 app.get("/products/:id", (req, res) => {
   const product_id = req.params.id;
-  
+
   var get_product_by_id = `
     SELECT 
       p.id AS product_id,
@@ -138,24 +143,32 @@ app.get("/products/:id", (req, res) => {
 
   db.all(get_product_by_id, params, (err, rows) => {
     if (err) {
-      res.status(400).json({ "error": err.message });
+      res.status(400).json({ error: err.message });
       return;
     }
 
     if (rows.length === 0) {
-      res.status(404).json({ "error": "Product not found" });
+      res.status(404).json({ error: "Product not found" });
       return;
     }
 
-    rows = rows.map(row => {
-      row.recommended_skin_types = row.recommended_skin_types ? row.recommended_skin_types.split(',') : [];
-      row.ingredient_list = row.ingredient_list ? row.ingredient_list.split(',') : [];
+    rows = rows.map((row) => {
+      row.recommended_skin_types = row.recommended_skin_types
+        ? row.recommended_skin_types.split(",")
+        : [];
+      row.ingredient_list = row.ingredient_list
+        ? row.ingredient_list.split(",")
+        : [];
       return row;
     });
     res.json({
-      "products": rows
+      products: rows,
     });
   });
 });
 
-module.exports = app;
+app.listen(PORT, () => {
+  console.log("Server Listening on PORT:", PORT);
+});
+
+export default app;

@@ -28,24 +28,24 @@ describe("GET /products/id", () => {
     expect(response.body.products[0].product_id).toBe(1);
   });
 
-    //Product ID
-    it("should return 400 if product ID is not a valid number", async () => {
-      const response = await request(app).get("/products/abc");
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBe("Invalid product ID");
-    });
-  
-    it("should return 404 if product id does not exist", async () => {
-      const response = await request(app).get("/products/9999");
-      expect(response.status).toBe(404);
-      expect(response.body.error).toBe("Product with ID 9999 not found");
-    });
+  //Product ID
+  it("should return 400 if product ID is not a valid number", async () => {
+    const response = await request(app).get("/products/abc");
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("Invalid product ID");
+  });
+
+  it("should return 404 if product id does not exist", async () => {
+    const response = await request(app).get("/products/9999");
+    expect(response.status).toBe(404);
+    expect(response.body.error).toBe("Product with ID 9999 not found");
+  });
 });
 
 describe("GET /products/product-type", () => {
   it("should get products by their product type", async () => {
     const response = await request(app).get(
-      "/products/by-type?product_type=Cleansing%20Oil"
+      "/products/product-type?product_type=Cleansing%20Oil"
     );
     expect(response.status).toBe(200);
     expect(response.body.message).toBe("success");
@@ -54,14 +54,14 @@ describe("GET /products/product-type", () => {
   });
 
   it("should return 400 if product_type query parameter is missing", async () => {
-    const response = await request(app).get("/products/by-type");
+    const response = await request(app).get("/products/product-type");
     expect(response.status).toBe(400);
     expect(response.body.error).toBe("Missing product_type query parameter");
   });
 
   it("should return empty array if no products match type", async () => {
     const response = await request(app).get(
-      "/products/by-type?product_type=NonexistentType"
+      "/products/product-type?product_type=NonexistentType"
     );
     expect(response.status).toBe(200);
     expect(response.body.message).toBe("success");
@@ -69,10 +69,10 @@ describe("GET /products/product-type", () => {
   });
 });
 
-describe("GET /products/by-skin-type", () => {
+describe("GET /products/skin-type", () => {
   it("should get products by 1 recommended skin type", async () => {
     const response = await request(app).get(
-      "/products/by-skin-type?recommended_skin_type=oily"
+      "/products/skin-type?recommended_skin_type=oily"
     );
     expect(response.status).toBe(200);
     expect(response.body.message).toBe("success");
@@ -82,7 +82,7 @@ describe("GET /products/by-skin-type", () => {
 
   it("should get products by more than 1 recommended skin type", async () => {
     const response = await request(app).get(
-      "/products/by-skin-type?recommended_skin_type=oily,dry"
+      "/products/skin-type?recommended_skin_type=oily,dry"
     );
     expect(response.status).toBe(200);
     expect(response.body.message).toBe("success");
@@ -90,10 +90,9 @@ describe("GET /products/by-skin-type", () => {
     expect(response.body.products.length).toBeGreaterThan(0);
   });
 
-
   it("should return 404 if no products match the skin types", async () => {
     const response = await request(app).get(
-      "/products/by-skin-type?recommended_skin_type=apples"
+      "/products/skin-type?recommended_skin_type=apples"
     );
     expect(response.status).toBe(200);
     expect(response.body.message).toBe("success");
@@ -102,7 +101,7 @@ describe("GET /products/by-skin-type", () => {
 
   it("should handle an empty recommended_skin_type query parameter gracefully", async () => {
     const response = await request(app).get(
-      "/products/by-skin-type?recommended_skin_type="
+      "/products/skin-type?recommended_skin_type="
     );
     expect(response.status).toBe(400);
     expect(response.body.error).toBe(
@@ -138,11 +137,138 @@ describe("GET /products/ingredient", () => {
     expect(response.body.products.length).toBeGreaterThan(0);
   });
 
+  it("should get products by multiple ingredients", async () => {
+    const response = await request(app).get(
+      "/products/ingredient/Water,hyaluronic%20acid"
+    );
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("success");
+    expect(response.body.products).toBeInstanceOf(Array);
+    expect(response.body.products.length).toBeGreaterThan(0);
+  });
+
   it("should return 404 if brand does not exist", async () => {
-    const response = await request(app).get("/products/ingredient/nonexistentingredient");
+    const response = await request(app).get(
+      "/products/ingredient/nonexistentingredient"
+    );
     expect(response.status).toBe(404);
     expect(response.body.error).toBe(
       "No products found with the specified ingredients."
     );
+  });
+});
+
+describe("GET /products/price", () => {
+  it("should get products with price less than 10", async () => {
+    const response = await request(app).get("/products/price/lt/10"); // Correct path
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("success");
+    expect(response.body.products).toBeInstanceOf(Array);
+    expect(response.body.products.length).toBeGreaterThan(0);
+    response.body.products.forEach((product) => {
+      expect(product.price).toBeLessThan(10);
+    });
+  });
+
+  it("should get products with price greater than 50", async () => {
+    const response = await request(app).get("/products/price/gt/50"); // Correct path
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("success");
+    expect(response.body.products).toBeInstanceOf(Array);
+    expect(response.body.products.length).toBeGreaterThan(0);
+    response.body.products.forEach((product) => {
+      expect(product.price).toBeGreaterThan(50);
+    });
+  });
+
+  it("should get products with price equal to 20", async () => {
+    const response = await request(app).get("/products/price/eq/20"); // Correct path
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("success");
+    expect(response.body.products).toBeInstanceOf(Array);
+    expect(response.body.products.length).toBeGreaterThan(0);
+    response.body.products.forEach((product) => {
+      expect(product.price).toBe(20);
+    });
+  });
+
+  it("should return 404 if no products match the price filter", async () => {
+    const response = await request(app).get("/products/price/lt/1"); // Assuming no products are under $1
+    expect(response.status).toBe(404);
+    expect(response.body.error).toBe(
+      "No products found with the specified price filter."
+    );
+  });
+
+  it("should return 400 for invalid operator", async () => {
+    const response = await request(app).get("/products/price/xyz/10"); // Invalid operator "xyz"
+    expect(response.status).toBe(400); // Status should be 400, not 404
+    expect(response.body.error).toBe(
+      "Invalid price operator. Use lt, gt, or eq."
+    );
+  });
+
+  it("should return 400 for invalid price format", async () => {
+    const response = await request(app).get("/products/price/lt/abc"); // Invalid price "abc"
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("Invalid price value.");
+  });
+});
+
+describe("GET /products/price", () => {
+  it("should get products with price less than 10", async () => {
+    const response = await request(app).get("/products/price/lt/10"); // Correct path
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("success");
+    expect(response.body.products).toBeInstanceOf(Array);
+    expect(response.body.products.length).toBeGreaterThan(0);
+    response.body.products.forEach((product) => {
+      expect(product.price).toBeLessThan(10);
+    });
+  });
+
+  it("should get products with price greater than 50", async () => {
+    const response = await request(app).get("/products/price/gt/50"); // Correct path
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("success");
+    expect(response.body.products).toBeInstanceOf(Array);
+    expect(response.body.products.length).toBeGreaterThan(0);
+    response.body.products.forEach((product) => {
+      expect(product.price).toBeGreaterThan(50);
+    });
+  });
+
+  it("should get products with price equal to 20", async () => {
+    const response = await request(app).get("/products/price/eq/20"); // Correct path
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("success");
+    expect(response.body.products).toBeInstanceOf(Array);
+    expect(response.body.products.length).toBeGreaterThan(0);
+    response.body.products.forEach((product) => {
+      expect(product.price).toBe(20);
+    });
+  });
+
+  it("should return 404 if no products match the price filter", async () => {
+    const response = await request(app).get("/products/price/lt/1");
+    expect(response.status).toBe(404);
+    expect(response.body.error).toBe(
+      "No products found with the specified price filter."
+    );
+  });
+
+  it("should return 400 for invalid operator", async () => {
+    const response = await request(app).get("/products/price/xyz/10");
+    expect(response.status).toBe(400);
+    4;
+    expect(response.body.error).toBe(
+      "Invalid price operator. Use lt, gt, or eq."
+    );
+  });
+
+  it("should return 400 for invalid price format", async () => {
+    const response = await request(app).get("/products/price/lt/abc");
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("Invalid price value.");
   });
 });

@@ -10,7 +10,7 @@ use `npx eslint .` to lint it
 | --------------------------------------- | :--------------------------------------------------------------------: |
 | Get all products                        |                    `http://localhost:4000/products`                    |
 | Get products by product id              |                   `http://localhost:4000/products/5`                   |
-| Get products by a specific product type | `http://localhost:4000/products/product-type?product_type=Face%20Wash` |
+| Get products by a specific product type  | `http://localhost:4000/products/product-type?product_type=Face%20Wash` |
 | Get products by their brand             |         `http://localhost:4000/products/brand/the%20ordinary`          |
 | Get products by their skin type         | `http://localhost:4000/products/skin-type?recommended_skin_type=oily`  |
 | Get products by their ingredients       |           `http://localhost:4000/products/ingredient/Water`            |

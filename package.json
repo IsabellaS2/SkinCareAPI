@@ -8,7 +8,7 @@
     "testEnvironment": "node"
   },
   "scripts": {
-    "dev": "nodemon app.js",
+    "dev": "nodemon server.js",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest --verbose --runInBand --forceExit --detectOpenHandles --coverage"
   },
   "author": "Isabella Sulisufi <i.sulisufi@gmail.com>",
